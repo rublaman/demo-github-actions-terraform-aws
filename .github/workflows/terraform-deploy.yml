@@ -21,127 +21,74 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.10.5
-          
-      - name: Determine environment
+
+      # Step 1: Determine environment & set environment variables
+      - name: Set environment variables
         id: set-env
         run: |
           CURRENT_BRANCH="${GITHUB_REF_NAME}"
           echo "Current branch is $CURRENT_BRANCH"
-      
+
+          # Default to UNKNOWN. If it remains UNKNOWN by the end, we fail.
+          ENV_TYPE="UNKNOWN"
+
+          # Use conditionals to set environment-specific variables
           if [ "$CURRENT_BRANCH" = "develop" ]; then
-            echo "env_type=DEVELOP" >> $GITHUB_OUTPUT
+            ENV_TYPE="DEVELOP"
+            echo "TF_VAR_environment=develop" >> $GITHUB_ENV
+            echo "TF_VAR_ingest_bucket_name=${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
+            echo "TF_VAR_processed_bucket_name=${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
+
           elif [ "$CURRENT_BRANCH" = "staging" ]; then
-            echo "env_type=STAGING" >> $GITHUB_OUTPUT
+            ENV_TYPE="STAGING"
+            echo "TF_VAR_environment=staging" >> $GITHUB_ENV
+            echo "TF_VAR_ingest_bucket_name=${{ secrets.STAGING_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
+            echo "TF_VAR_processed_bucket_name=${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
+
           elif [ "$CURRENT_BRANCH" = "main" ]; then
-            echo "env_type=MAIN" >> $GITHUB_OUTPUT
-          else
-            echo "env_type=UNKNOWN" >> $GITHUB_OUTPUT
-            echo "Unsupported branch for this workflow."
+            ENV_TYPE="MAIN"
+            # If your main branch is actually "production," set that here:
+            echo "TF_VAR_environment=production" >> $GITHUB_ENV
+            echo "TF_VAR_ingest_bucket_name=${{ secrets.MAIN_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
+            echo "TF_VAR_processed_bucket_name=${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
+          fi
+
+          # Export env_type for usage in later steps/conditions
+          echo "env_type=$ENV_TYPE" >> $GITHUB_OUTPUT
+
+          # Fail the job if no recognized environment
+          if [ "$ENV_TYPE" = "UNKNOWN" ]; then
+            echo "Unsupported branch: $CURRENT_BRANCH"
             exit 1
           fi
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
-        
-      ####################################################
-      # DEVELOP
-      ####################################################
-      - name: Terraform Init (Develop)
-        if: steps.set-env.outputs.env_type == 'DEVELOP'
+
+      # Step 2: Terraform Init
+      - name: Terraform Init
+        if: steps.set-env.outputs.env_type != 'UNKNOWN'
         working-directory: ./terraform
         env:
-          TF_VAR_environment: "develop"
           TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-          TF_VAR_ingest_bucket_name: ${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}
-          TF_VAR_processed_bucket_name: ${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}
         run: terraform init
 
-      - name: Terraform Plan (Develop)
-        if: steps.set-env.outputs.env_type == 'DEVELOP'
+      # Step 3: Terraform Plan
+      - name: Terraform Plan
+        if: steps.set-env.outputs.env_type != 'UNKNOWN'
         working-directory: ./terraform
         env:
-          TF_VAR_environment: "develop"
           TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-          TF_VAR_ingest_bucket_name: ${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}
-          TF_VAR_processed_bucket_name: ${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}
         run: terraform plan -no-color
 
-      - name: Terraform Apply (Develop)
-        if: steps.set-env.outputs.env_type == 'DEVELOP' && github.event_name == 'push'
+      # Step 4: Terraform Apply (only on push)
+      - name: Terraform Apply
+        if: steps.set-env.outputs.env_type != 'UNKNOWN' && github.event_name == 'push'
         working-directory: ./terraform
         env:
-          TF_VAR_environment: "develop"
           TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-          TF_VAR_ingest_bucket_name: ${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}
-          TF_VAR_processed_bucket_name: ${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}
         run: terraform apply -auto-approve
-  
-      ####################################################
-      # STAGING
-      ####################################################
-      # - name: Terraform Init (Staging)
-      #   if: steps.set-env.outputs.env_type == 'STAGING'
-      #   working-directory: ./terraform
-      #   env:
-      #     TF_VAR_environment: "staging"
-      #     TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-      #     TF_VAR_ingest_bucket_name: ${{ secrets.STAGING_INGEST_BUCKET_NAME }}
-      #     TF_VAR_processed_bucket_name: ${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}
-      #   run: terraform init
-
-      # - name: Terraform Plan (Staging)
-      #   if: steps.set-env.outputs.env_type == 'STAGING'
-      #   working-directory: ./terraform
-      #   env:
-      #     TF_VAR_environment: "staging"
-      #     TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-      #     TF_VAR_ingest_bucket_name: ${{ secrets.STAGING_INGEST_BUCKET_NAME }}
-      #     TF_VAR_processed_bucket_name: ${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}
-      #   run: terraform plan -no-color
-
-      # - name: Terraform Apply (Staging)
-      #   if: steps.set-env.outputs.env_type == 'STAGING' && github.event_name == 'push'
-      #   working-directory: ./terraform
-      #   env:
-      #     TF_VAR_environment: "staging"
-      #     TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-      #     TF_VAR_ingest_bucket_name: ${{ secrets.STAGING_INGEST_BUCKET_NAME }}
-      #     TF_VAR_processed_bucket_name: ${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}
-      #   run: terraform apply -auto-approve
-
-      ####################################################
-      # PRODUCTION
-      ####################################################
-      # - name: Terraform Init (Main)
-      #   if: steps.set-env.outputs.env_type == 'MAIN'
-      #   working-directory: ./terraform
-      #   env:
-      #     TF_VAR_environment: "production"
-      #     TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-      #     TF_VAR_ingest_bucket_name: ${{ secrets.MAIN_INGEST_BUCKET_NAME }}
-      #     TF_VAR_processed_bucket_name: ${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}
-      #   run: terraform init
-
-      # - name: Terraform Plan (Main)
-      #   if: steps.set-env.outputs.env_type == 'MAIN'
-      #   working-directory: ./terraform
-      #   env:
-      #     TF_VAR_environment: "production"
-      #     TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-      #     TF_VAR_ingest_bucket_name: ${{ secrets.MAIN_INGEST_BUCKET_NAME }}
-      #     TF_VAR_processed_bucket_name: ${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}
-      #   run: terraform plan -no-color
-
-      # - name: Terraform Apply (Main)
-      #   if: steps.set-env.outputs.env_type == 'MAIN' && github.event_name == 'push'
-      #   working-directory: ./terraform
-      #   env:
-      #     TF_VAR_environment: "production"
-      #     TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-      #     TF_VAR_ingest_bucket_name: ${{ secrets.MAIN_INGEST_BUCKET_NAME }}
-      #     TF_VAR_processed_bucket_name: ${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}
-      #   run: terraform apply -auto-approve
