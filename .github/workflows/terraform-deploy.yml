@@ -45,6 +45,7 @@ jobs:
         if: steps.set-env.outputs.env_type == 'DEVELOP'
         working-directory: ./terraform
         env:
+          TF_VAR_environment: ${{ secrets.DEVELOP_ENVIRONMENT }}
           TF_VAR_aws_region: ${{ secrets.DEVELOP_AWS_REGION }}
           TF_VAR_ingest_bucket_name: ${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}
           TF_VAR_processed_bucket_name: ${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}
@@ -57,6 +58,7 @@ jobs:
         if: steps.set-env.outputs.env_type == 'DEVELOP' && github.event_name == 'push'
         working-directory: ./terraform
         env:
+          TF_VAR_environment: ${{ secrets.DEVELOP_ENVIRONMENT }}
           TF_VAR_aws_region: ${{ secrets.DEVELOP_AWS_REGION }}
           TF_VAR_ingest_bucket_name: ${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}
           TF_VAR_processed_bucket_name: ${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}
@@ -69,6 +71,7 @@ jobs:
         if: steps.set-env.outputs.env_type == 'STAGING'
         working-directory: ./terraform
         env:
+          TF_VAR_environment: ${{ secrets.DEVELOP_ENVIRONMENT }}
           TF_VAR_aws_region: ${{ secrets.STAGING_AWS_REGION }}
           TF_VAR_ingest_bucket_name: ${{ secrets.STAGING_INGEST_BUCKET_NAME }}
           TF_VAR_processed_bucket_name: ${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}
@@ -80,6 +83,7 @@ jobs:
         if: steps.set-env.outputs.env_type == 'STAGING' && github.event_name == 'push'
         working-directory: ./terraform
         env:
+          TF_VAR_environment: ${{ secrets.STAGING_ENVIRONMENT }}
           TF_VAR_aws_region: ${{ secrets.STAGING_AWS_REGION }}
           TF_VAR_ingest_bucket_name: ${{ secrets.STAGING_INGEST_BUCKET_NAME }}
           TF_VAR_processed_bucket_name: ${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}
@@ -92,6 +96,7 @@ jobs:
         if: steps.set-env.outputs.env_type == 'MAIN'
         working-directory: ./terraform
         env:
+          TF_VAR_environment: ${{ secrets.MAIN_ENVIRONMENT }}
           TF_VAR_aws_region: ${{ secrets.MAIN_AWS_REGION }}
           TF_VAR_ingest_bucket_name: ${{ secrets.MAIN_INGEST_BUCKET_NAME }}
           TF_VAR_processed_bucket_name: ${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}
@@ -103,6 +108,7 @@ jobs:
         if: steps.set-env.outputs.env_type == 'MAIN' && github.event_name == 'push'
         working-directory: ./terraform
         env:
+          TF_VAR_environment: ${{ secrets.MAI_ENVIRONMENT }}
           TF_VAR_aws_region: ${{ secrets.MAIN_AWS_REGION }}
           TF_VAR_ingest_bucket_name: ${{ secrets.MAIN_INGEST_BUCKET_NAME }}
           TF_VAR_processed_bucket_name: ${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}
