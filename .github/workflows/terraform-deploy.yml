@@ -22,41 +22,41 @@ jobs:
         with:
           terraform_version: 1.10.5
 
-      # Step 1: Determine environment & set environment variables
+      # Paso 1: Determinar el entorno y establecer variables de ambiente
       - name: Set environment variables
         id: set-env
         run: |
           CURRENT_BRANCH="${GITHUB_REF_NAME}"
           echo "Current branch is $CURRENT_BRANCH"
-
-          # Default to UNKNOWN. If it remains UNKNOWN by the end, we fail.
           ENV_TYPE="UNKNOWN"
 
-          # Use conditionals to set environment-specific variables
-          if [ "$CURRENT_BRANCH" = "develop" ]; then
-            ENV_TYPE="DEVELOP"
-            echo "TF_VAR_environment=develop" >> $GITHUB_ENV
-            echo "TF_VAR_ingest_bucket_name=${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
-            echo "TF_VAR_processed_bucket_name=${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
+          # Seleccionar entorno según la rama actual usando 'case'
+          case "$CURRENT_BRANCH" in
+            develop)
+              ENV_TYPE="DEVELOP"
+              echo "TF_VAR_environment=develop" >> $GITHUB_ENV
+              echo "TF_VAR_ingest_bucket_name=${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
+              echo "TF_VAR_processed_bucket_name=${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
+              ;;
+            staging)
+              ENV_TYPE="STAGING"
+              echo "TF_VAR_environment=staging" >> $GITHUB_ENV
+              echo "TF_VAR_ingest_bucket_name=${{ secrets.STAGING_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
+              echo "TF_VAR_processed_bucket_name=${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
+              ;;
+            main)
+              ENV_TYPE="MAIN"
+              # En el caso de que 'main' represente producción
+              echo "TF_VAR_environment=production" >> $GITHUB_ENV
+              echo "TF_VAR_ingest_bucket_name=${{ secrets.MAIN_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
+              echo "TF_VAR_processed_bucket_name=${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
+              ;;
+          esac
 
-          elif [ "$CURRENT_BRANCH" = "staging" ]; then
-            ENV_TYPE="STAGING"
-            echo "TF_VAR_environment=staging" >> $GITHUB_ENV
-            echo "TF_VAR_ingest_bucket_name=${{ secrets.STAGING_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
-            echo "TF_VAR_processed_bucket_name=${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
-
-          elif [ "$CURRENT_BRANCH" = "main" ]; then
-            ENV_TYPE="MAIN"
-            # If your main branch is actually "production," set that here:
-            echo "TF_VAR_environment=production" >> $GITHUB_ENV
-            echo "TF_VAR_ingest_bucket_name=${{ secrets.MAIN_INGEST_BUCKET_NAME }}" >> $GITHUB_ENV
-            echo "TF_VAR_processed_bucket_name=${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}" >> $GITHUB_ENV
-          fi
-
-          # Export env_type for usage in later steps/conditions
+          # Exportar el tipo de entorno para pasos posteriores
           echo "env_type=$ENV_TYPE" >> $GITHUB_OUTPUT
 
-          # Fail the job if no recognized environment
+          # Finalizar la ejecución si el entorno es desconocido
           if [ "$ENV_TYPE" = "UNKNOWN" ]; then
             echo "Unsupported branch: $CURRENT_BRANCH"
             exit 1
@@ -69,7 +69,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
-      # Step 2: Terraform Init with backend config (ocultando el bucket con variable de entorno)
+      # Paso 2: Inicializar Terraform con configuración del backend
       - name: Terraform Init
         if: steps.set-env.outputs.env_type != 'UNKNOWN'
         working-directory: ./terraform
@@ -83,7 +83,7 @@ jobs:
             -backend-config="region=${{ secrets.AWS_DEFAULT_REGION }}" \
             -backend-config="encrypt=true"
 
-      # Step 3: Terraform Plan
+      # Paso 3: Ejecutar Terraform Plan
       - name: Terraform Plan
         if: steps.set-env.outputs.env_type != 'UNKNOWN'
         working-directory: ./terraform
@@ -91,7 +91,7 @@ jobs:
           TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
         run: terraform plan -no-color
 
-      # Step 4: Terraform Apply (only on push)
+      # Paso 4: Ejecutar Terraform Apply (solo en push)
       - name: Terraform Apply
         if: steps.set-env.outputs.env_type != 'UNKNOWN' && github.event_name == 'push'
         working-directory: ./terraform
