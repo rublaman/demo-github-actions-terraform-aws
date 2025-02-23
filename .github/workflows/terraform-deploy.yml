@@ -18,61 +18,90 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.10.5
-
-      - name: Detect environment
+          
+      - name: Determine environment
         id: set-env
         run: |
           CURRENT_BRANCH="${GITHUB_REF_NAME}"
-      
-          # Cerrar el if con "fi"
+          echo "Current branch is $CURRENT_BRANCH"
+
           if [ "$CURRENT_BRANCH" = "develop" ]; then
-            echo "selected_environment=develop" >> $GITHUB_OUTPUT
+            echo "env_type=DEVELOP" >> $GITHUB_OUTPUT
           elif [ "$CURRENT_BRANCH" = "staging" ]; then
-            echo "selected_environment=staging" >> $GITHUB_OUTPUT
+            echo "env_type=STAGING" >> $GITHUB_OUTPUT
           elif [ "$CURRENT_BRANCH" = "main" ]; then
-            echo "selected_environment=production" >> $GITHUB_OUTPUT
+            echo "env_type=MAIN" >> $GITHUB_OUTPUT
           else
-            echo "selected_environment=unknown" >> $GITHUB_OUTPUT
-          fi
-    
-      - name: Generate tfvars
-        id: generate-tfvars
-        working-directory: ./terraform
-        run: |
-          ENVIRONMENT="${{ steps.set-env.outputs.selected_environment }}"
-      
-          # Cerrar el if con "fi"
-          if [ "$ENVIRONMENT" = "develop" ]; then
-            echo "${{ vars.DEVELOP_TFVARS }}" > develop.tfvars
-            echo "tfvars_file=develop.tfvars" >> $GITHUB_OUTPUT
-      
-          elif [ "$ENVIRONMENT" = "staging" ]; then
-            echo "${{ vars.STAGING_TFVARS }}" > staging.tfvars
-            echo "tfvars_file=staging.tfvars" >> $GITHUB_OUTPUT
-      
-          elif [ "$ENVIRONMENT" = "production" ]; then
-            echo "${{ vars.PRODUCTION_TFVARS }}" > production.tfvars
-            echo "tfvars_file=production.tfvars" >> $GITHUB_OUTPUT
-      
-          else
-            echo "No matching environment for branch ${GITHUB_REF_NAME}."
+            echo "env_type=UNKNOWN" >> $GITHUB_OUTPUT
+            echo "Unsupported branch for this workflow."
             exit 1
-          fi
 
-
-      - name: Terraform Init
+      ####################################################
+      # DEVELOP
+      ####################################################
+      - name: Terraform Plan (Develop)
+        if: steps.set-env.outputs.env_type == 'DEVELOP'
         working-directory: ./terraform
-        run: terraform init
+        env:
+          TF_VAR_aws_region: ${{ secrets.DEVELOP_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}
+        run: |
+          terraform init
+          terraform plan
 
-      - name: Ver contenido de develop.tfvars
-        run: cat develop.tfvars
+      # (Apply) se ejecuta en la misma rama. 
+      - name: Terraform Apply (Develop)
+        if: steps.set-env.outputs.env_type == 'DEVELOP' && github.event_name == 'push'
         working-directory: ./terraform
+        env:
+          TF_VAR_aws_region: ${{ secrets.DEVELOP_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}
+        run: terraform apply -auto-approve
 
-      - name: Terraform Plan
+      ####################################################
+      # STAGING
+      ####################################################
+      - name: Terraform Plan (Staging)
+        if: steps.set-env.outputs.env_type == 'STAGING'
         working-directory: ./terraform
-        run: terraform plan -var-file="develop.tfvars"
+        env:
+          TF_VAR_aws_region: ${{ secrets.STAGING_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ vars.STAGING_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ vars.STAGING_PROCESSED_BUCKET_NAME }}
+        run: |
+          terraform init
+          terraform plan
 
-      - name: Terraform Apply
-        if: github.event_name == 'push'
+      - name: Terraform Apply (Staging)
+        if: steps.set-env.outputs.env_type == 'STAGING' && github.event_name == 'push'
         working-directory: ./terraform
-        run: terraform apply -auto-approve -var-file="${{ steps.generate-tfvars.outputs.tfvars_file }}"
+        env:
+          TF_VAR_aws_region: ${{ vars.STAGING_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ vars.STAGING_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ vars.STAGING_PROCESSED_BUCKET_NAME }}
+        run: terraform apply -auto-approve
+
+      ####################################################
+      # PRODUCTION
+      ####################################################
+      - name: Terraform Plan (Main)
+        if: steps.set-env.outputs.env_type == 'MAIN'
+        working-directory: ./terraform
+        env:
+          TF_VAR_aws_region: ${{ vars.MAIN_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ vars.MAIN_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ vars.MAIN_PROCESSED_BUCKET_NAME }}
+        run: |
+          terraform init
+          terraform plan
+
+      - name: Terraform Apply (Main)
+        if: steps.set-env.outputs.env_type == 'MAIN' && github.event_name == 'push'
+        working-directory: ./terraform
+        env:
+          TF_VAR_aws_region: ${{ vars.MAIN_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ vars.MAIN_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ vars.MAIN_PROCESSED_BUCKET_NAME }}
+        run: terraform apply -auto-approve
