@@ -24,7 +24,7 @@ jobs:
         run: |
           CURRENT_BRANCH="${GITHUB_REF_NAME}"
           echo "Current branch is $CURRENT_BRANCH"
-
+      
           if [ "$CURRENT_BRANCH" = "develop" ]; then
             echo "env_type=DEVELOP" >> $GITHUB_OUTPUT
           elif [ "$CURRENT_BRANCH" = "staging" ]; then
@@ -34,7 +34,9 @@ jobs:
           else
             echo "env_type=UNKNOWN" >> $GITHUB_OUTPUT
             echo "Unsupported branch for this workflow."
-          exit 1
+            exit 1
+          fi
+        
 
       ####################################################
       # DEVELOP
@@ -68,8 +70,8 @@ jobs:
         working-directory: ./terraform
         env:
           TF_VAR_aws_region: ${{ secrets.STAGING_AWS_REGION }}
-          TF_VAR_ingest_bucket_name: ${{ vars.STAGING_INGEST_BUCKET_NAME }}
-          TF_VAR_processed_bucket_name: ${{ vars.STAGING_PROCESSED_BUCKET_NAME }}
+          TF_VAR_ingest_bucket_name: ${{ secrets.STAGING_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}
         run: |
           terraform init
           terraform plan
@@ -78,9 +80,9 @@ jobs:
         if: steps.set-env.outputs.env_type == 'STAGING' && github.event_name == 'push'
         working-directory: ./terraform
         env:
-          TF_VAR_aws_region: ${{ vars.STAGING_AWS_REGION }}
-          TF_VAR_ingest_bucket_name: ${{ vars.STAGING_INGEST_BUCKET_NAME }}
-          TF_VAR_processed_bucket_name: ${{ vars.STAGING_PROCESSED_BUCKET_NAME }}
+          TF_VAR_aws_region: ${{ secrets.STAGING_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ secrets.STAGING_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ secrets.STAGING_PROCESSED_BUCKET_NAME }}
         run: terraform apply -auto-approve
 
       ####################################################
@@ -90,9 +92,9 @@ jobs:
         if: steps.set-env.outputs.env_type == 'MAIN'
         working-directory: ./terraform
         env:
-          TF_VAR_aws_region: ${{ vars.MAIN_AWS_REGION }}
-          TF_VAR_ingest_bucket_name: ${{ vars.MAIN_INGEST_BUCKET_NAME }}
-          TF_VAR_processed_bucket_name: ${{ vars.MAIN_PROCESSED_BUCKET_NAME }}
+          TF_VAR_aws_region: ${{ secrets.MAIN_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ secrets.MAIN_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}
         run: |
           terraform init
           terraform plan
@@ -101,7 +103,7 @@ jobs:
         if: steps.set-env.outputs.env_type == 'MAIN' && github.event_name == 'push'
         working-directory: ./terraform
         env:
-          TF_VAR_aws_region: ${{ vars.MAIN_AWS_REGION }}
-          TF_VAR_ingest_bucket_name: ${{ vars.MAIN_INGEST_BUCKET_NAME }}
-          TF_VAR_processed_bucket_name: ${{ vars.MAIN_PROCESSED_BUCKET_NAME }}
+          TF_VAR_aws_region: ${{ secrets.MAIN_AWS_REGION }}
+          TF_VAR_ingest_bucket_name: ${{ secrets.MAIN_INGEST_BUCKET_NAME }}
+          TF_VAR_processed_bucket_name: ${{ secrets.MAIN_PROCESSED_BUCKET_NAME }}
         run: terraform apply -auto-approve
