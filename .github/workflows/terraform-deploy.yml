@@ -59,6 +59,7 @@ jobs:
             exit 1
           fi
 
+
       - name: Terraform Init
         working-directory: ./terraform
         run: terraform init
