@@ -43,15 +43,15 @@ jobs:
       
           # Cerrar el if con "fi"
           if [ "$ENVIRONMENT" = "develop" ]; then
-            echo "${{ secrets.DEVELOP_TFVARS }}" > develop.tfvars
+            echo "${{ vars.DEVELOP_TFVARS }}" > develop.tfvars
             echo "tfvars_file=develop.tfvars" >> $GITHUB_OUTPUT
       
           elif [ "$ENVIRONMENT" = "staging" ]; then
-            echo "${{ secrets.STAGING_TFVARS }}" > staging.tfvars
+            echo "${{ vars.STAGING_TFVARS }}" > staging.tfvars
             echo "tfvars_file=staging.tfvars" >> $GITHUB_OUTPUT
       
           elif [ "$ENVIRONMENT" = "production" ]; then
-            echo "${{ secrets.PRODUCTION_TFVARS }}" > production.tfvars
+            echo "${{ vars.PRODUCTION_TFVARS }}" > production.tfvars
             echo "tfvars_file=production.tfvars" >> $GITHUB_OUTPUT
       
           else
@@ -66,7 +66,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./terraform
-        run: terraform plan -var-file="${{ steps.generate-tfvars.outputs.tfvars_file }}"
+        run: terraform plan -var-file="develop.tfvars"
 
       - name: Terraform Apply
         if: github.event_name == 'push'
