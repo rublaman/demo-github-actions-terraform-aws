@@ -1,0 +1,26 @@
+name: Enforce Branch Flow
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source/target branch
+        run: |
+          echo "Base (target): ${{ github.event.pull_request.base.ref }}"
+          echo "Head (source): ${{ github.event.pull_request.head.ref }}"
+
+          # Accept only PR from develop -> staging  or  staging -> main
+          if [ "${{ github.event.pull_request.base.ref }}" = "staging" ] && \
+             [ "${{ github.event.pull_request.head.ref }}" = "develop" ]; then
+            echo "✅ PR from develop to staging is allowed."
+          elif [ "${{ github.event.pull_request.base.ref }}" = "main" ] && \
+               [ "${{ github.event.pull_request.head.ref }}" = "staging" ]; then
+            echo "✅ PR from staging to main is allowed."
+          else
+            echo "❌ This PR is not allowed. Only merges develop→staging or staging→main are permitted."
+            exit 1
+          fi
