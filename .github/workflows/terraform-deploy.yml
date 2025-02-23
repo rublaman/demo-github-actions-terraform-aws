@@ -64,6 +64,10 @@ jobs:
         working-directory: ./terraform
         run: terraform init
 
+      - name: Ver contenido de develop.tfvars
+        run: cat develop.tfvars
+        working-directory: ./terraform
+
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan -var-file="develop.tfvars"
