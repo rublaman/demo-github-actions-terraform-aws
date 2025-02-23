@@ -34,7 +34,7 @@ jobs:
           else
             echo "env_type=UNKNOWN" >> $GITHUB_OUTPUT
             echo "Unsupported branch for this workflow."
-            exit 1
+          exit 1
 
       ####################################################
       # DEVELOP
