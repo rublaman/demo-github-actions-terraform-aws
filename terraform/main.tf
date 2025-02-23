@@ -13,3 +13,7 @@ module "s3_processed" {
   bucket_name = var.processed_bucket_name
   environment = var.environment
 }
+
+terraform {
+  backend "s3" {}
+}

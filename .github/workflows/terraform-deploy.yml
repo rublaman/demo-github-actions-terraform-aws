@@ -69,13 +69,19 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
-      # Step 2: Terraform Init
+      # Step 2: Terraform Init with backend config (ocultando el bucket con variable de entorno)
       - name: Terraform Init
         if: steps.set-env.outputs.env_type != 'UNKNOWN'
         working-directory: ./terraform
         env:
           TF_VAR_aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
-        run: terraform init
+          BUCKET_NAME: ${{ secrets.TF_STATE_BUCKET }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${BUCKET_NAME}" \
+            -backend-config="key=${{ github.ref_name }}/terraform.tfstate" \
+            -backend-config="region=us-east-1" \
+            -backend-config="encrypt=true"
 
       # Step 3: Terraform Plan
       - name: Terraform Plan
