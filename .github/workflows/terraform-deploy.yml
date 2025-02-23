@@ -23,8 +23,8 @@ jobs:
         id: set-env
         run: |
           CURRENT_BRANCH="${GITHUB_REF_NAME}"
-
-          # Asigna un "alias" interno: develop -> develop, staging -> staging, main -> production
+      
+          # Cerrar el if con "fi"
           if [ "$CURRENT_BRANCH" = "develop" ]; then
             echo "selected_environment=develop" >> $GITHUB_OUTPUT
           elif [ "$CURRENT_BRANCH" = "staging" ]; then
@@ -33,28 +33,31 @@ jobs:
             echo "selected_environment=production" >> $GITHUB_OUTPUT
           else
             echo "selected_environment=unknown" >> $GITHUB_OUTPUT
-
+          fi
+    
       - name: Generate tfvars
         id: generate-tfvars
         working-directory: ./terraform
         run: |
           ENVIRONMENT="${{ steps.set-env.outputs.selected_environment }}"
-
+      
+          # Cerrar el if con "fi"
           if [ "$ENVIRONMENT" = "develop" ]; then
             echo "${{ secrets.DEVELOP_TFVARS }}" > develop.tfvars
             echo "tfvars_file=develop.tfvars" >> $GITHUB_OUTPUT
-
+      
           elif [ "$ENVIRONMENT" = "staging" ]; then
             echo "${{ secrets.STAGING_TFVARS }}" > staging.tfvars
             echo "tfvars_file=staging.tfvars" >> $GITHUB_OUTPUT
-
+      
           elif [ "$ENVIRONMENT" = "production" ]; then
             echo "${{ secrets.PRODUCTION_TFVARS }}" > production.tfvars
             echo "tfvars_file=production.tfvars" >> $GITHUB_OUTPUT
-
+      
           else
             echo "No matching environment for branch ${GITHUB_REF_NAME}."
             exit 1
+          fi
 
       - name: Terraform Init
         working-directory: ./terraform
