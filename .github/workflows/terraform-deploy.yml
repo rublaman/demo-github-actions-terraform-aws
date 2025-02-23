@@ -79,8 +79,7 @@ jobs:
           TF_VAR_ingest_bucket_name: ${{ secrets.DEVELOP_INGEST_BUCKET_NAME }}
           TF_VAR_processed_bucket_name: ${{ secrets.DEVELOP_PROCESSED_BUCKET_NAME }}
         run: terraform apply -auto-approve
-
-        
+  
       ####################################################
       # STAGING
       ####################################################
