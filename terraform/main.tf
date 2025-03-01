@@ -17,10 +17,10 @@ terraform {
 module "s3_buckets" {
   source = "./modules/s3-buckets"
 
-  environment        = var.environment
-  project_name       = "rublaman"
+  environment         = var.environment
+  project_name        = "rublaman"
   bucket_landing_name = var.s3_bucket_landing
-  bucket_raw_name    = var.s3_bucket_raw
+  bucket_raw_name     = var.s3_bucket_raw
   bucket_curated_name = var.s3_bucket_curated
-  bucket_ready_name  = var.s3_bucket_ready
+  bucket_ready_name   = var.s3_bucket_ready
 }

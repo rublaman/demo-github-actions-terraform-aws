@@ -3,7 +3,7 @@
 # Bucket de Landing
 resource "aws_s3_bucket" "landing_bucket" {
   bucket = var.bucket_landing_name
-  
+
   tags = {
     Name        = var.bucket_landing_name
     Environment = var.environment
@@ -15,7 +15,7 @@ resource "aws_s3_bucket" "landing_bucket" {
 # Bucket de Raw
 resource "aws_s3_bucket" "raw_bucket" {
   bucket = var.bucket_raw_name
-  
+
   tags = {
     Name        = var.bucket_raw_name
     Environment = var.environment
@@ -27,7 +27,7 @@ resource "aws_s3_bucket" "raw_bucket" {
 # Bucket de Curated
 resource "aws_s3_bucket" "curated_bucket" {
   bucket = var.bucket_curated_name
-  
+
   tags = {
     Name        = var.bucket_curated_name
     Environment = var.environment
@@ -39,7 +39,7 @@ resource "aws_s3_bucket" "curated_bucket" {
 # Bucket de Ready
 resource "aws_s3_bucket" "ready_bucket" {
   bucket = var.bucket_ready_name
-  
+
   tags = {
     Name        = var.bucket_ready_name
     Environment = var.environment
