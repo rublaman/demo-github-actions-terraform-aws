@@ -64,7 +64,7 @@ aws-terraform-project/
    - [Download from HashiCorp](https://www.terraform.io/downloads)
    - Verify installation: `terraform version`
 
-2. **AWS CLI**
+2. **AWS CLI (version 2)**
    - [Installation Guide](https://aws.amazon.com/cli/)
    - Verify installation: `aws --version`
 
