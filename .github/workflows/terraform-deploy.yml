@@ -1,0 +1,157 @@
+name: Terraform Deploy
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+      - main
+  pull_request:
+    branches:
+      - develop
+      - staging
+      - main
+
+jobs:
+  terraform:
+    name: 'Terraform Deploy'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'push' && (github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown') || github.event_name == 'pull_request' && (github.base_ref == 'develop' && 'dev' || github.base_ref == 'staging' && 'stg' || github.base_ref == 'main' && 'pro' || 'unknown') }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ENVIRONMENT: ${{ github.event_name == 'push' && (github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown') || github.event_name == 'pull_request' && (github.base_ref == 'develop' && 'dev' || github.base_ref == 'staging' && 'stg' || github.base_ref == 'main' && 'pro' || 'unknown') }}
+      TERRAFORM_STATE_BUCKET: ${{ vars.TERRAFORM_STATE_BUCKET }}
+      S3_BUCKET_LANDING: ${{ vars.S3_BUCKET_LANDING }}
+      S3_BUCKET_RAW: ${{ vars.S3_BUCKET_RAW }}
+      S3_BUCKET_CURATED: ${{ vars.S3_BUCKET_CURATED }}
+      S3_BUCKET_READY: ${{ vars.S3_BUCKET_READY }}
+    
+    permissions:
+      contents: read
+      pull-requests: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Debug Environment Variables
+        run: |
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Environment: ${{ github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown' }}"
+          echo "AWS_REGION from vars: ${{ vars.AWS_REGION }}"
+          echo "AWS_REGION from env: ${{ env.AWS_REGION }}"
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Branch (ref_name): ${{ github.ref_name }}"
+          echo "Base Ref (PR target): ${{ github.base_ref }}"
+          echo "Head Ref (PR source): ${{ github.head_ref }}"
+          echo "Environment: ${{ env.ENVIRONMENT }}"
+          echo "AWS_REGION from vars: ${{ vars.AWS_REGION }}"
+          echo "AWS_REGION from env: ${{ env.AWS_REGION }}"
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}  # Usa vars.AWS_REGION directamente
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}  # Define la variable de entorno para otros usos
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.11.0
+      
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check -recursive
+        working-directory: ./terraform
+      
+      - name: Terraform Init
+        id: init
+        run: |
+          export TF_VAR_environment=$ENVIRONMENT
+          export TF_VAR_aws_region=$AWS_REGION
+          export TF_VAR_terraform_state_bucket=$TERRAFORM_STATE_BUCKET
+          export TF_VAR_s3_bucket_landing=$S3_BUCKET_LANDING
+          export TF_VAR_s3_bucket_raw=$S3_BUCKET_RAW
+          export TF_VAR_s3_bucket_curated=$S3_BUCKET_CURATED
+          export TF_VAR_s3_bucket_ready=$S3_BUCKET_READY
+          
+          terraform init \
+            -backend-config="bucket=${TERRAFORM_STATE_BUCKET}" \
+            -backend-config="region=${AWS_REGION}" \
+            -backend-config="key=terraform/${ENVIRONMENT}/terraform.tfstate" \
+            -backend-config="use_lockfile=true"
+        working-directory: ./terraform
+      
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+        working-directory: ./terraform
+      
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: |
+          export TF_VAR_environment=$ENVIRONMENT
+          export TF_VAR_aws_region=$AWS_REGION
+          export TF_VAR_terraform_state_bucket=$TERRAFORM_STATE_BUCKET
+          export TF_VAR_s3_bucket_landing=$S3_BUCKET_LANDING
+          export TF_VAR_s3_bucket_raw=$S3_BUCKET_RAW
+          export TF_VAR_s3_bucket_curated=$S3_BUCKET_CURATED
+          export TF_VAR_s3_bucket_ready=$S3_BUCKET_READY
+          
+          terraform plan -no-color
+        working-directory: ./terraform
+        continue-on-error: true
+      
+      - name: Update Pull Request
+        uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+      
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main'
+        run: |
+          export TF_VAR_environment=$ENVIRONMENT
+          export TF_VAR_aws_region=$AWS_REGION
+          export TF_VAR_terraform_state_bucket=$TERRAFORM_STATE_BUCKET
+          export TF_VAR_s3_bucket_landing=$S3_BUCKET_LANDING
+          export TF_VAR_s3_bucket_raw=$S3_BUCKET_RAW
+          export TF_VAR_s3_bucket_curated=$S3_BUCKET_CURATED
+          export TF_VAR_s3_bucket_ready=$S3_BUCKET_READY
+          
+          terraform apply -auto-approve
+        working-directory: ./terraform
