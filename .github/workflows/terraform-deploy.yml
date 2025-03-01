@@ -39,7 +39,9 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}  # Usa vars.AWS_REGION directamente
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}  # Define la variable de entorno para otros usos
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
