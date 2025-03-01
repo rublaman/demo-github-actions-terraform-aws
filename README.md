@@ -64,7 +64,7 @@ aws-terraform-project/
    - [Download from HashiCorp](https://www.terraform.io/downloads)
    - Verify installation: `terraform version`
 
-2. **AWS CLI (version 2)**
+2. **AWS CLI**
    - [Installation Guide](https://aws.amazon.com/cli/)
    - Verify installation: `aws --version`
 
@@ -218,6 +218,55 @@ chmod +x bootstrap.sh
    - Approved PRs trigger `terraform apply`
    - Automatic infrastructure updates
 
+## Security and Access Flow
+
+### Infrastructure Access Mechanism
+
+The project implements a robust security model that ensures controlled and traceable infrastructure deployments. The following diagram illustrates the access and deployment workflow:
+
+```mermaid
+sequenceDiagram
+    participant DEV as Developer
+    participant GH as GitHub Actions
+    participant AWS as AWS Infrastructure
+    participant S3 as S3 Buckets
+    
+    DEV->>GH: Push Code Changes
+    GH->>AWS: Authenticate with IAM Credentials
+    AWS-->>GH: Access Granted
+    
+    GH->>AWS: Terraform Plan
+    AWS-->>GH: Execution Plan
+    
+    alt Successful Plan
+        GH->>AWS: Terraform Apply
+        AWS->>S3: Create/Update Buckets
+        S3-->>AWS: Configuration Complete
+    else Plan Fails
+        GH-->>DEV: Notify Plan Failure
+    end
+    
+    Note over DEV,S3: Strict Access Control
+    Note over AWS: Least Privilege Principle
+```
+
+### Key Security Principles
+
+1. **Principle of Least Privilege**
+   - IAM users are granted only the minimum permissions necessary
+   - Custom IAM policies restrict access to specific resources
+   - Separate credentials for each environment
+
+2. **Controlled Deployment Process**
+   - All infrastructure changes go through GitHub Actions
+   - Mandatory code review and approval process
+   - Automated planning and validation before deployment
+
+3. **Secure Credential Management**
+   - AWS credentials stored as encrypted GitHub secrets
+   - No hard-coded credentials in the repository
+   - Regular credential rotation recommended
+
 ## Best Practices
 
 - Always use descriptive commit messages
@@ -241,4 +290,4 @@ chmod +x bootstrap.sh
 
 ## Support
 
-Any issues? Open anissue in the repository :)
+Encounter issues? Check our troubleshooting section or open a GitHub issue in the repository.
