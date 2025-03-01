@@ -16,8 +16,7 @@ jobs:
   terraform:
     name: 'Terraform Deploy'
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name }}  # Uses the branch name as environment
-    
+    environment: ${{ github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown' }}
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       ENVIRONMENT: ${{ vars.ENVIRONMENT }}
