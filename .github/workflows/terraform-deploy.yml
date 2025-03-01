@@ -33,6 +33,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Debug Environment Variables
+        run: |
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Environment: ${{ github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown' }}"
+          echo "AWS_REGION from vars: ${{ vars.AWS_REGION }}"
+          echo "AWS_REGION from env: ${{ env.AWS_REGION }}"
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
