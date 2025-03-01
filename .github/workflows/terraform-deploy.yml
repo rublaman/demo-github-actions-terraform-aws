@@ -16,10 +16,10 @@ jobs:
   terraform:
     name: 'Terraform Deploy'
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'push' && (github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown') || github.event_name == 'pull_request' && (github.base_ref == 'refs/heads/develop' && 'dev' || github.base_ref == 'refs/heads/staging' && 'stg' || github.base_ref == 'refs/heads/main' && 'pro' || 'unknown') }}
+    environment: ${{ github.event_name == 'push' && (github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown') || github.event_name == 'pull_request' && (github.base_ref == 'develop' && 'dev' || github.base_ref == 'staging' && 'stg' || github.base_ref == 'main' && 'pro' || 'unknown') }}
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
-      ENVIRONMENT: ${{ github.event_name == 'push' && (github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown') || github.event_name == 'pull_request' && (github.base_ref == 'refs/heads/develop' && 'dev' || github.base_ref == 'refs/heads/staging' && 'stg' || github.base_ref == 'refs/heads/main' && 'pro' || 'unknown') }}
+      ENVIRONMENT: ${{ github.event_name == 'push' && (github.ref_name == 'develop' && 'dev' || github.ref_name == 'staging' && 'stg' || github.ref_name == 'main' && 'pro' || 'unknown') || github.event_name == 'pull_request' && (github.base_ref == 'develop' && 'dev' || github.base_ref == 'staging' && 'stg' || github.base_ref == 'main' && 'pro' || 'unknown') }}
       TERRAFORM_STATE_BUCKET: ${{ vars.TERRAFORM_STATE_BUCKET }}
       S3_BUCKET_LANDING: ${{ vars.S3_BUCKET_LANDING }}
       S3_BUCKET_RAW: ${{ vars.S3_BUCKET_RAW }}
