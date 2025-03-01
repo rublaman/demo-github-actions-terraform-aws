@@ -342,4 +342,4 @@ sequenceDiagram
 
 ## Support
 
-Encounter issues? Check our troubleshooting section or open a GitHub issue in the repository.
+Any issues? Open an issue in the repository :)
