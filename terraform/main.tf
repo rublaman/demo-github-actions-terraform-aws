@@ -1,19 +1,26 @@
-provider "aws" {
-  region = var.aws_region
-}
-
-module "s3_ingest" {
-  source      = "../modules/s3"
-  bucket_name = var.ingest_bucket_name
-  environment = var.environment
-}
-
-module "s3_processed" {
-  source      = "../modules/s3"
-  bucket_name = var.processed_bucket_name
-  environment = var.environment
-}
-
 terraform {
-  backend "s3" {}
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+  required_version = "~> 1.11.0"
+
+  backend "s3" {
+    # Estos valores serán proporcionados durante terraform init
+    # No se pueden usar variables aquí
+  }
+}
+
+# Módulo para crear los buckets S3 requeridos
+module "s3_buckets" {
+  source = "./modules/s3-buckets"
+
+  environment        = var.environment
+  project_name       = "rublaman"
+  bucket_landing_name = var.s3_bucket_landing
+  bucket_raw_name    = var.s3_bucket_raw
+  bucket_curated_name = var.s3_bucket_curated
+  bucket_ready_name  = var.s3_bucket_ready
 }
