@@ -15,7 +15,7 @@ terraform {
 
 # Módulo para crear los buckets S3 requeridos
 module "s3_buckets" {
-  source = "./modules/s3-buckets"
+  source = "./modules/s3"
 
   environment         = var.environment
   project_name        = "rublaman"
