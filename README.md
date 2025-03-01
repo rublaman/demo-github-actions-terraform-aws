@@ -7,13 +7,15 @@
 4. [Project Structure](#project-structure)
 5. [Required Tools](#required-tools)
 6. [AWS IAM User Configuration](#aws-iam-user-configuration)
-7. [Initial Setup](#initial-setup)
-8. [Development Workflow](#development-workflow)
-9. [Security and Access Flow](#security-and-access-flow)
-10. [Best Practices](#best-practices)
-11. [Advanced Configuration](#advanced-configuration)
-12. [References](#references)
-13. [Support](#support)
+7. [GitHub Configuration](#github-configuration)
+8. [Initial Setup](#initial-setup)
+9. [Development Workflow](#development-workflow)
+10. [Security and Access Flow](#security-and-access-flow)
+11. [Best Practices](#best-practices)
+12. [Troubleshooting Common Issues](#troubleshooting-common-issues)
+13. [Advanced Configuration](#advanced-configuration)
+14. [References](#references)
+15. [Support](#support)
 
 ## Overview
 
@@ -34,52 +36,15 @@ If you're new to these technologies, consider reviewing:
 - [Git & GitHub Crash Course](https://www.youtube.com/watch?v=SWYqp7iY_Tc)
 - [Terraform Fundamentals](https://developer.hashicorp.com/terraform/tutorials/aws-get-started)
 
-## Development Workflow
-
-### Deployment Process Flowchart
-
-```mermaid
-flowchart TD
-    A[Developer Starts] --> B{Choose Environment}
-    B --> |Dev| C[Create Feature Branch]
-    B --> |Staging| D[Prepare Staging Changes]
-    B --> |Production| E[Prepare Production Release]
-    
-    C --> F[Make Terraform Changes]
-    D --> F
-    E --> F
-    
-    F --> G[Run Terraform Plan]
-    G --> H{Plan Successful?}
-    H --> |Yes| I[Create Pull Request]
-    H --> |No| J[Fix Terraform Configuration]
-    
-    I --> K[Peer Review]
-    J --> F
-    
-    K --> L{Approved?}
-    L --> |Yes| M[Merge to Environment Branch]
-    L --> |No| N[Request Changes]
-    
-    M --> O[GitHub Actions Trigger]
-    O --> P[Terraform Apply]
-    P --> Q[Infrastructure Updated]
-    
-    N --> K
-    Q --> R[Monitor and Validate]
-    R --> S[Update Documentation]
-    S --> T[End]
-```
-
 ## Project Architecture
 
 The project creates a robust, scalable infrastructure for each environment (dev, stg, pro):
 
 - **4 S3 Buckets** with specific purposes:
-  - `[environment]-rublaman-landing_s3`: Initial data landing zone
-  - `[environment]-rublaman-raw_s3`: Raw, unprocessed data storage
-  - `[environment]-rublaman-curated_s3`: Cleaned and transformed data
-  - `[environment]-rublaman-ready_s3`: Processed data ready for consumption
+  - `[environment]-project-name-landing_s3`: Initial data landing zone
+  - `[environment]-project-name-raw_s3`: Raw, unprocessed data storage
+  - `[environment]-project-name-curated_s3`: Cleaned and transformed data
+  - `[environment]-project-name-ready_s3`: Processed data ready for consumption
 
 ### Key Features
 - Private bucket configurations
@@ -160,38 +125,65 @@ aws-terraform-project/
    - IMPORTANT: Save the Access Key ID and Secret Access Key immediately
    - These will be used only once, so store them securely
 
-### Configuring GitHub Secrets
+## GitHub Configuration
 
-1. **Access GitHub Repository Settings**
-   - Navigate to your repository
-   - Click "Settings"
-   - Select "Secrets and variables" > "Actions"
+### Creating and Configuring Environments
 
-2. **Add AWS Credentials as Secrets**
-   - Click "New repository secret"
-   - Create two secrets:
-     - Name: `AWS_ACCESS_KEY_ID`
-       - Value: The access key ID from AWS IAM
-     - Name: `AWS_SECRET_ACCESS_KEY`
-       - Value: The secret access key from AWS IAM
+Before adding variables or secrets, you must first create each environment in GitHub:
 
-3. **Security Considerations**
-   - Never share these credentials
-   - Rotate credentials periodically
-   - Use the principle of least privilege
-   - Consider using temporary credentials or AWS IAM roles for enhanced security
+1. **Create the Environments**
+   - Navigate to your repository's **Settings**
+   - In the sidebar, select **Environments**
+   - Create three environments: `dev`, `stg`, and `pro`
 
-## Troubleshooting Common Issues
+2. **Configure Environment Variables for Each Environment**
 
-### Authentication Problems
-- Ensure AWS credentials are correctly configured
-- Check IAM user permissions
-- Verify access key and secret are current
+   **For dev Environment:**
+   
+   | Variable               | Value                              |
+   |------------------------|------------------------------------|
+   | AWS_REGION             | eu-region-xx                       |
+   | ENVIRONMENT            | dev                                |
+   | S3_BUCKET_CURATED      | dev-project-name-curated_s3        |
+   | S3_BUCKET_LANDING      | dev-project-name-landing_s3        |
+   | S3_BUCKET_RAW          | dev-project-name-raw_s3            |
+   | S3_BUCKET_READY        | dev-project-name-ready_s3          |
+   | TERRAFORM_STATE_BUCKET | dev-project-name-terraform-state   |
 
-### Terraform State Management
-- Never manually modify Terraform state files
-- Use `terraform refresh` if state becomes out of sync
-- Consider using remote state storage (as implemented in this project)
+   **For stg Environment:**
+   
+   | Variable               | Value                              |
+   |------------------------|------------------------------------|
+   | AWS_REGION             | eu-region-xx                       |
+   | ENVIRONMENT            | stg                                |
+   | S3_BUCKET_CURATED      | stg-project-name-curated_s3        |
+   | S3_BUCKET_LANDING      | stg-project-name-landing_s3        |
+   | S3_BUCKET_RAW          | stg-project-name-raw_s3            |
+   | S3_BUCKET_READY        | stg-project-name-ready_s3          |
+   | TERRAFORM_STATE_BUCKET | stg-project-name-terraform-state   |
+
+   **For pro Environment:**
+   
+   | Variable               | Value                              |
+   |------------------------|------------------------------------|
+   | AWS_REGION             | eu-region-xx                       |
+   | ENVIRONMENT            | pro                                |
+   | S3_BUCKET_CURATED      | pro-project-name-curated_s3        |
+   | S3_BUCKET_LANDING      | pro-project-name-landing_s3        |
+   | S3_BUCKET_RAW          | pro-project-name-raw_s3            |
+   | S3_BUCKET_READY        | pro-project-name-ready_s3          |
+   | TERRAFORM_STATE_BUCKET | pro-project-name-terraform-state   |
+
+3. **Configure Secrets for Each Environment**
+   - Within each environment, add these secrets:
+     - **AWS_ACCESS_KEY_ID**: Your AWS access key ID
+     - **AWS_SECRET_ACCESS_KEY**: Your AWS secret access key
+
+4. **Branch Protection Rules**
+   - Navigate to **Settings** > **Branches**
+   - Add rules for `develop`, `staging`, and `main` branches
+   - Require pull request reviews before merging
+   - Require status checks to pass before merging
 
 ## Initial Setup
 
@@ -218,23 +210,52 @@ cd aws-terraform-project
 
 ```bash
 # Create and publish environment-specific branches
-git checkout -b dev
+git checkout -b develop
 git add .
 git commit -m "Initial project configuration"
-git push -u origin dev
+git push -u origin develop
 
-git checkout -b stg
-git push -u origin stg
+git checkout -b staging
+git push -u origin staging
 
-git checkout -b pro
-git push -u origin pro
+git checkout -b main
+git push -u origin main
 ```
 
-### 4. GitHub Environment Configuration
+### 4. Bootstrap Script Overview
 
-1. Repository Settings > Environments
-2. Create three environments: `dev`, `stg`, `pro`
-3. Configure environment-specific variables
+The `bootstrap.sh` script performs initial setup for each environment:
+
+```bash
+#!/bin/bash
+# bootstrap.sh
+# Usage: ./bootstrap.sh <environment> <region>
+# Example: ./bootstrap.sh dev eu-region-xx
+
+ENVIRONMENT=$1
+REGION=$2
+
+if [ -z "$ENVIRONMENT" ] || [ -z "$REGION" ]; then
+  echo "Error: Missing parameters"
+  echo "Usage: ./bootstrap.sh <environment> <region>"
+  exit 1
+fi
+
+# Create S3 bucket for Terraform state
+BUCKET_NAME="${ENVIRONMENT}-project-name-terraform-state"
+echo "Creating Terraform state bucket: $BUCKET_NAME"
+aws s3api create-bucket \
+  --bucket $BUCKET_NAME \
+  --region $REGION \
+  --create-bucket-configuration LocationConstraint=$REGION
+
+# Enable versioning on the state bucket
+aws s3api put-bucket-versioning \
+  --bucket $BUCKET_NAME \
+  --versioning-configuration Status=Enabled
+
+echo "Terraform state bucket created and configured successfully."
+```
 
 ### 5. Initialize Infrastructure
 
@@ -243,16 +264,53 @@ cd scripts
 chmod +x bootstrap.sh
 
 # Initialize each environment
-./bootstrap.sh dev eu-south-2
-./bootstrap.sh stg eu-south-2
-./bootstrap.sh pro eu-south-2
+./bootstrap.sh dev eu-region-xx
+./bootstrap.sh stg eu-region-xx
+./bootstrap.sh pro eu-region-xx
 ```
 
 ## Development Workflow
 
+### Deployment Process Flowchart
+
+```mermaid
+flowchart TD
+    A[Developer Starts] --> B{Choose Environment}
+    B --> |Dev| C[Create Feature Branch]
+    B --> |Staging| D[Prepare Staging Changes]
+    B --> |Production| E[Prepare Production Release]
+    
+    C --> F[Make Terraform Changes]
+    D --> F
+    E --> F
+    
+    F --> G[Run Terraform Plan]
+    G --> H{Plan Successful?}
+    H --> |Yes| I[Create Pull Request]
+    H --> |No| J[Fix Terraform Configuration]
+    
+    I --> K[Peer Review]
+    J --> F
+    
+    K --> L{Approved?}
+    L --> |Yes| M[Merge to Environment Branch]
+    L --> |No| N[Request Changes]
+    
+    M --> O[GitHub Actions Trigger]
+    O --> P[Terraform Apply]
+    P --> Q[Infrastructure Updated]
+    
+    N --> K
+    Q --> R[Monitor and Validate]
+    R --> S[Update Documentation]
+    S --> T[End]
+```
+
+### Step-by-Step Process
+
 1. **Branch Strategy**
    ```bash
-   git checkout dev
+   git checkout develop
    git pull
    git checkout -b feature/new-functionality
    ```
@@ -327,12 +385,41 @@ sequenceDiagram
 - Implement proper access controls
 - Regularly update provider versions
 
+## Troubleshooting Common Issues
+
+### Authentication Problems
+- Ensure AWS credentials are correctly configured in GitHub secrets
+- Check IAM user permissions to verify they have the necessary access
+- Verify that access keys are current and not expired
+
+### Terraform State Issues
+- If state becomes out of sync, use `terraform refresh` to update it
+- Never manually modify Terraform state files
+- Check S3 bucket permissions if you encounter access denied errors
+
+### GitHub Actions Workflow Failures
+- Verify that environment variables are correctly configured
+- Check that branch names match the expected patterns (develop, staging, main)
+- Review workflow logs to identify specific error messages
+
+### S3 Bucket Creation Failures
+- Check for naming conflicts (bucket names must be globally unique)
+- Verify that you have permission to create S3 buckets
+- Ensure region constraints are properly configured
+
 ## Advanced Configuration
 
 ### Extending the Project
 - Create new modules in `terraform/modules/`
 - Define resources, variables, outputs
 - Reference from `terraform/main.tf`
+
+### Adding Additional AWS Resources
+To incorporate more AWS services beyond S3 buckets:
+
+1. Create appropriate modules for each resource type
+2. Define variables for environment-specific configurations
+3. Update GitHub Actions workflow as needed for additional permissions
 
 ## References
 
@@ -342,4 +429,4 @@ sequenceDiagram
 
 ## Support
 
-Any issues? Open an issue in the repository :)
+Encounter issues? Check our troubleshooting section or open a GitHub issue in the repository for assistance.
