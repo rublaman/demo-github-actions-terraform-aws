@@ -1,5 +1,20 @@
 # AWS + Terraform + GitHub Actions Project
 
+## Table of Contents
+1. [Overview](#overview)
+2. [Prerequisites for Beginners](#prerequisites-for-beginners)
+3. [Project Architecture](#project-architecture)
+4. [Project Structure](#project-structure)
+5. [Required Tools](#required-tools)
+6. [AWS IAM User Configuration](#aws-iam-user-configuration)
+7. [Initial Setup](#initial-setup)
+8. [Development Workflow](#development-workflow)
+9. [Security and Access Flow](#security-and-access-flow)
+10. [Best Practices](#best-practices)
+11. [Advanced Configuration](#advanced-configuration)
+12. [References](#references)
+13. [Support](#support)
+
 ## Overview
 
 This project provides a comprehensive infrastructure-as-code (IaC) solution using Terraform 1.11, AWS, and GitHub Actions. It's designed to help teams efficiently manage and deploy cloud infrastructure with best practices for multi-environment setups.
@@ -18,6 +33,43 @@ If you're new to these technologies, consider reviewing:
 - [AWS Cloud Practitioner Essentials](https://aws.amazon.com/training/course-descriptions/cloud-practitioner-essentials/)
 - [Git & GitHub Crash Course](https://www.youtube.com/watch?v=SWYqp7iY_Tc)
 - [Terraform Fundamentals](https://developer.hashicorp.com/terraform/tutorials/aws-get-started)
+
+## Development Workflow
+
+### Deployment Process Flowchart
+
+```mermaid
+flowchart TD
+    A[Developer Starts] --> B{Choose Environment}
+    B --> |Dev| C[Create Feature Branch]
+    B --> |Staging| D[Prepare Staging Changes]
+    B --> |Production| E[Prepare Production Release]
+    
+    C --> F[Make Terraform Changes]
+    D --> F
+    E --> F
+    
+    F --> G[Run Terraform Plan]
+    G --> H{Plan Successful?}
+    H --> |Yes| I[Create Pull Request]
+    H --> |No| J[Fix Terraform Configuration]
+    
+    I --> K[Peer Review]
+    J --> F
+    
+    K --> L{Approved?}
+    L --> |Yes| M[Merge to Environment Branch]
+    L --> |No| N[Request Changes]
+    
+    M --> O[GitHub Actions Trigger]
+    O --> P[Terraform Apply]
+    P --> Q[Infrastructure Updated]
+    
+    N --> K
+    Q --> R[Monitor and Validate]
+    R --> S[Update Documentation]
+    S --> T[End]
+```
 
 ## Project Architecture
 
